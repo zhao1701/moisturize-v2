@@ -1,4 +1,4 @@
 export REGISTRY=''
-export IMAGE_NAME=${REGISTRY}derek-base
-export CONTAINER_NAME=derek-base
-export PROJECT_DIR=''
+export IMAGE_NAME=${REGISTRY}moisturize
+export CONTAINER_NAME=moisturize
+export PROJECT_DIR=`dirname $(pwd)`
