@@ -1,0 +1,26 @@
+{
+    "snippets" : [
+        {
+            "name" : "derek-default",
+            "code" : [
+                "import os",
+                "import sys",
+                "import numpy as np",
+                "import pandas as pd",
+                "import matplotlib.pyplot as plt",
+                "import seaborn as sns",
+                "",
+                "from matplotlib import rcParams",
+                "",
+                "sns.set(context='notebook', style='whitegrid')",
+                "rcParams['font.family'] = 'serif'",
+                "rcParams['font.serif'] = 'times new roman'",
+                "",
+                "%config InlineBackend.figure_format = 'retina'",
+                "%matplotlib inline",
+                "%load_ext autoreload",
+                "%autoreload 2"
+            ]
+        }
+    ]
+}
