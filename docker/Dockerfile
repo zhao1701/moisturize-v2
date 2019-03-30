@@ -30,7 +30,7 @@ RUN pip install jupyter_contrib_nbextensions && \
     jupyter nbextension enable zenmode/main
 
 # Additional Python libraries
-RUN pip install gitpython pillow
+RUN pip install gitpython pillow tqdm
 
 # Zsh
 RUN apt-get update && apt-get install -y \

@@ -2,4 +2,4 @@ __pycache__
 .DS_STORE
 .ipynb_checkpoints
 .idea
-data/*
+data/celeb-a.nosync/*
