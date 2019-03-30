@@ -29,6 +29,9 @@ RUN pip install jupyter_contrib_nbextensions && \
     jupyter nbextension enable vim_binding/vim_binding && \
     jupyter nbextension enable zenmode/main
 
+# Additional Python libraries
+RUN pip install gitpython
+
 # Zsh
 RUN apt-get update && apt-get install -y \
     zsh fonts-powerline
