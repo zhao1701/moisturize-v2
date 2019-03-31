@@ -8,7 +8,7 @@ This module contains various loss functions that can be added to a VAE.
 from keras import backend as K
 
 
-def kl_divergence(z_mu, z_log_sigma):
+def kl_divergence(z_mu, z_log_sigma, **_):
     """
     Computes the Kullback-Leibler divergence between the latent Gaussian
     distributions and a standard multivariate Gaussian.
@@ -34,7 +34,7 @@ def kl_divergence(z_mu, z_log_sigma):
     return kl_divergence_
 
 
-def sum_squared_error(y_true, y_pred):
+def sum_squared_error(x, y, **_):
     """
     Computes the average SSE between input image and reconstruction over
     batches of image data. In other words, for each image and its
@@ -43,9 +43,9 @@ def sum_squared_error(y_true, y_pred):
 
     Parameters
     ----------
-    y_true : tensor, shape (num_samples, height, width, num_channels)
+    x : tensor, shape (num_samples, height, width, num_channels)
         A batch of input images.
-    y_pred : tensor, shape (num_samples, height, width, num_channels)
+    y : tensor, shape (num_samples, height, width, num_channels)
         A batch of corresponding image reconstructions.
 
     Returns
@@ -54,7 +54,7 @@ def sum_squared_error(y_true, y_pred):
         The average sum of squared errors for images and reconstructions
         within a batch.
     """
-    temp = K.square(y_true - y_pred)
+    temp = K.square(x - y)
     # Sum squared errors of channels, width, and height
     for i in range(3):
         temp = K.sum(temp, axis=-1)
