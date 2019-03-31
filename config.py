@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).parent.resolve()
@@ -9,3 +11,4 @@ LIBRARY_DIR = PROJECT_DIR / 'tcvae'
 NOTEBOOKS_DIR = PROJECT_DIR / 'notebooks'
 
 CELEB_A_DIR = DATA_DIR / 'celeb-a.nosync'
+NETWORKS_DIR = LIBRARY_DIR / 'networks'
