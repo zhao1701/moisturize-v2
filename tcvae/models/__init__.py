@@ -11,6 +11,7 @@ import sys
 from keras.models import Model
 
 sys.path.append(os.path.dirname(__file__))
+from tcvae.utils import unpack_tensors
 from tcvae.losses import kl_divergence, sum_squared_error
 
 
@@ -25,9 +26,7 @@ def make_autoencoder_model(
         'what the decoder expects.')
 
     # Unpack model tensors
-    tensor_dict = dict(
-        x=encoder.inputs[0], z=encoder(x)[0], z_mu=encoder(x)[1],
-        z_log_sigma=encoder(x)[2], y=decoder(encoder(x)[0]))
+    tensor_dict = unpack_tensors(encoder, decoder, inference=False)
 
     # Create VAE model
     vae = Model(
