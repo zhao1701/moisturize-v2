@@ -34,7 +34,7 @@ def make_autoencoder_model(
 
     # Convert loss functions to loss tensors
     loss_tensor_dict = {
-        loss_fn(**tensor_dict):coefficient
+        loss_fn(**tensor_dict): coefficient
         for loss_fn, coefficient
         in loss_dict.items()}
 
@@ -48,6 +48,8 @@ def make_autoencoder_model(
     # Total loss
     total_loss_fn = make_total_loss_fn(loss_closure_dict)
     metrics = list(loss_closure_dict.keys())
+    
+    # name_to_closure = dict(zip(loss_names, loss_closure_dict.keys()))
 
     vae.compile(loss=total_loss_fn, optimizer=optimizer, metrics=metrics)
     return vae
