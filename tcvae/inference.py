@@ -6,14 +6,6 @@ autoencoders models.
 """
 
 
-from pathlib import Path
-
-import numpy as np
-from keras.models import Model
-from keras.models import load_model
-from .utils import unpack_tensors
-
-
 def tile_multi_image_traversal(latent_traversals, num_rows):
     traversal_resolution, num_samples, img_height, img_width, num_channels = \
         latent_traversals.shape

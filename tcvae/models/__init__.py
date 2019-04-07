@@ -7,12 +7,15 @@ This module contains utilities for constructing, saving, and loading models.
 
 import os
 import sys
+import pickle as pkl
+from pathlib import Path
 
 import numpy as np
-from keras.models import Model
+from keras.models import Model, load_model
 
 sys.path.append(os.path.dirname(__file__))
-from tcvae.utils import unpack_tensors, check_compatibility
+from tcvae.utils import (
+    unpack_tensors, check_compatibility, check_path, make_directory)
 from tcvae.inference import tile_multi_image_traversal
 
 
@@ -38,16 +41,90 @@ class TCVAE:
         should be weighted.
     """
     def __init__(self, encoder, decoder, loss_dict):
-
         self.encoder = encoder
         self.decoder = decoder
+        self.loss_dict = loss_dict  # For saving
 
         models = _make_autoencoder_models(self.encoder, self.decoder)
         self.model_train, self.model_predict, self.tensors = models
         self.loss, self.metrics = _make_loss_and_metrics(
             loss_dict, self.tensors)
-
         self.num_latents = int(self.tensors['z'].shape[-1])
+
+    def compile(self, optimizer, **kwargs):
+        """
+        Configures the model for training.
+
+        Parameters
+        ----------
+        optimizer : keras.optimizers.Optimizer or str
+            See Keras documentation for more details
+        """
+        self.model_train.compile(
+            optimizer=optimizer, loss=self.loss, metrics=self.metrics, **kwargs)
+
+    def save(
+            self, save_dir, encoder_stem='encoder', decoder_stem='decoder',
+            losses_stem='losses', overwrite=False):
+        """
+        Saves model resources into a user-specified directory.
+
+        Parameters
+        ----------
+        save_dir : str or pathlib.Path
+            The directory where model resources will be saved.
+        encoder_stem : str
+            The name of the saved encoder file without file extension.
+        decoder_stem : str
+            The name of the saved decoder file without file extension.
+        losses_stem : str
+            The name of the saved loss dictionary without file extension.
+        overwrite : bool
+            Whether to overwrite an already existing directory.
+        """
+        make_directory(save_dir, overwrite=overwrite)
+        encoder_file, decoder_file, loss_file = _process_stems(
+            save_dir, encoder_stem, decoder_stem, losses_stem)
+
+        self.encoder.save(encoder_file)
+        self.decoder.save(decoder_file)
+        with open(loss_file, 'wb') as f:
+            pkl.dump(self.loss_dict, f)
+
+
+    @classmethod
+    def load(
+            cls, save_dir, encoder_stem='encoder', decoder_stem='decoder',
+            losses_stem='losses'):
+        """
+        Loads model resources from a user-specified directory.
+
+        Parameters
+        ----------
+        save_dir : str or pathlib.Path
+            The directory where model resources will be saved.
+        encoder_stem : str
+            The name of the saved encoder file without file extension.
+        decoder_stem : str
+            The name of the saved decoder file without file extension.
+        losses_stem : str
+            The name of the saved loss dictionary without file extension.
+
+        Returns
+        -------
+        model : tcvae.models.TCVAE
+            An uncompiled TCVAE model.
+        """
+
+        encoder_file, decoder_file, loss_file = _process_stems(
+            save_dir, encoder_stem, decoder_stem, losses_stem)
+        encoder = load_model(encoder_file)
+        decoder = load_model(decoder_file)
+        with open(loss_file, 'rb') as f:
+            loss_dict = pkl.load(f)
+        model = cls(encoder, decoder, loss_dict)
+        return model
+
 
     def encode(self, x, batch_size=32):
         """
@@ -237,6 +314,24 @@ class TCVAE:
                 batch_size=batch_size, output_format=output_format,
                 num_rows=num_rows)
         return traversal_dict
+
+    # TODO: compile, train, save
+
+
+def _process_stems(
+        save_dir, encoder_stem, decoder_stem, losses_stem):
+
+    paths = [save_dir, encoder_stem, decoder_stem, losses_stem]
+    save_dir, encoder_stem, decoder_stem, losses_stem = check_path(
+        paths, path_type=Path)
+
+    encoder_base = encoder_stem.with_suffix('.h5')
+    decoder_base = decoder_stem.with_suffix('.h5')
+    losses_base = losses_stem.with_suffix('.dict')
+    bases = encoder_base, decoder_base, losses_base
+    files = [save_dir / base for base in bases]
+    encoder_file, decoder_file, loss_file = check_path(files, path_type=str)
+    return encoder_file, decoder_file, loss_file
 
 
 def _make_autoencoder_models(encoder, decoder):
