@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-This module defines common VAE encoder and decoder
-architectures for 128x128 images.
+This module defines common VAE encoder and decoder architectures for 128x128
+images.
 """
 
 
@@ -41,7 +41,7 @@ def make_encoder_7_convs(
         activation='relu', batch_normalization=True, bn_momentum=0.1,
         bn_epsilon=1e-5):
     """
-    Creates an all-convolutional encoder function that converts input tensors
+    Creates an all-convolutional encoder model that converts input tensors
     into latent tensors. The transformation from input tensor to either a
     mean tensor or variance tensor involves 7 convolutions each, with the
     first 6 shared between the mean and variance tensor.
@@ -111,7 +111,7 @@ def make_decoder_7_deconvs(
         activation='relu', batch_normalization=True, bn_momentum=0.1,
         bn_epsilon=1e-5):
     """
-    Creates an all-convolutional decoder function that converts the latent
+    Creates an all-convolutional decoder model that converts the latent
     tensor into reconstruction tensors. The transformation from latent tensor to
     reconstruction involves 7 convolutions.
 

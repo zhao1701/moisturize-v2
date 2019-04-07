@@ -11,27 +11,40 @@ import sys
 from keras.models import Model
 
 sys.path.append(os.path.dirname(__file__))
-from tcvae.utils import unpack_tensors
+from tcvae.utils import unpack_tensors, check_compatibility
 from tcvae.losses import kl_divergence, sum_squared_error
 
 
-def make_autoencoder_model(
-        encoder, decoder, loss_dict, optimizer):
+class TCVAE:
 
-    # Check encoder and decoder are compatible
-    assert(encoder.input_shape == decoder.output_shape), (
-        'Encoder input shapes and decoder output shapes must be the same.')
-    assert(encoder.output_shape[0][-1] == decoder.input_shape[-1]), (
-        'The number of latent dimensions the encoder outputs is different from '
-        'what the decoder expects.')
+    def __init__(self, encoder, decoder, loss_dict, optimizer):
 
-    # Unpack model tensors
-    tensor_dict = unpack_tensors(encoder, decoder, inference=False)
+        self.encoder = encoder
+        self.decoder = decoder
 
-    # Create VAE model
-    vae = Model(
-        inputs=tensor_dict['x'], outputs=tensor_dict['y'], name='vae')
+        models = _make_autoencoder_models(self.encoder, self.decoder)
+        self.model_train, self.model_predict, self.tensor_dict = models
+        self.loss, self.metrics = _make_loss_and_metrics(
+            loss_dict, self.tensor_dict)
 
+
+def _make_autoencoder_models(encoder, decoder):
+    check_compatibility(encoder, decoder)
+    tensor_dict = unpack_tensors(encoder, decoder)
+
+    # Create VAE model for training
+    model_train = Model(
+        inputs=tensor_dict['x'], outputs=tensor_dict['y'],
+        name='vae-train')
+
+    # Create VAE model for inference
+    model_predict = Model(
+        inputs=tensor_dict['x'], outputs=tensor_dict['y_pred'],
+        name='vae-predict')
+    return model_train, model_predict, tensor_dict
+
+
+def _make_loss_and_metrics(loss_dict, tensor_dict):
     # Convert loss functions to loss tensors
     loss_tensor_dict = {
         loss_fn(**tensor_dict):coefficient
@@ -41,26 +54,24 @@ def make_autoencoder_model(
     # Convert loss tensors to Keras-compatible loss functions
     loss_names = [loss_fn.__name__ for loss_fn in loss_dict.keys()]
     loss_closure_dict = {
-        convert_to_closure(loss_tensor, loss_name): coefficient
+        _convert_to_closure(loss_tensor, loss_name): coefficient
         for loss_name, (loss_tensor, coefficient)
         in zip(loss_names, loss_tensor_dict.items())}
 
     # Total loss
-    total_loss_fn = make_total_loss_fn(loss_closure_dict)
+    total_loss_fn = _make_total_loss_fn(loss_closure_dict)
     metrics = list(loss_closure_dict.keys())
-
-    vae.compile(loss=total_loss_fn, optimizer=optimizer, metrics=metrics)
-    return vae
+    return total_loss_fn, metrics
 
 
-def convert_to_closure(loss_tensor, loss_name):
+def _convert_to_closure(loss_tensor, loss_name):
     def keras_loss_fn(x, y):
         return loss_tensor
     keras_loss_fn.__name__ = loss_name
     return keras_loss_fn
 
 
-def make_total_loss_fn(loss_dict):
+def _make_total_loss_fn(loss_dict):
     def total_loss_fn(x, y):
         loss = 0
         for loss_fn, coefficient in loss_dict.items():

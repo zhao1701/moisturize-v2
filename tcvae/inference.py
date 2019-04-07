@@ -32,10 +32,11 @@ class Predictor:
         self.encoder = model.get_layer('encoder')
         self.decoder = model.get_layer('decoder')
         self.tensors = unpack_tensors(
-            self.encoder, self.decoder, inference=True)
+            self.encoder, self.decoder)
 
         self.model = Model(
-            inputs=self.tensors['x'], outputs=self.tensors['y'], name='vae')
+            inputs=self.tensors['x'], outputs=self.tensors['y_pred'],
+            name='vae')
 
         self.num_latents = int(self.tensors['z'].shape[-1])
 
