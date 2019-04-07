@@ -86,7 +86,8 @@ def make_encoder_7_convs(
     paddings = ['same'] * (num_shared_convs-1) + ['valid']
     strides = [2] * (num_shared_convs-1) + [1]
 
-    x = Input(shape=(128, 128, num_channels))
+    input_ = Input(shape=(128, 128, num_channels), name='x')
+    x = input_
     for idx in range(num_shared_convs):
         conv_layer = Conv2D(
             filters[idx], 4, strides=strides[idx], padding=paddings[idx],
@@ -102,7 +103,7 @@ def make_encoder_7_convs(
     z_log_sigma = Conv2D(num_latents, 1)(x)
     z_log_sigma = Reshape((num_latents,))(z_log_sigma)
     z = Variational()([z_mu, z_log_sigma])
-    encoder = Model(inputs=x, outputs=[z, z_mu, z_log_sigma], name='encoder')
+    encoder = Model(inputs=input_, outputs=[z, z_mu, z_log_sigma], name='encoder')
     return encoder
 
 
@@ -156,8 +157,8 @@ def make_decoder_7_deconvs(
     strides = [1] * 2 + [2] * 4
     filter_sizes = [1] + [4] * 5
 
-    z = Input(shape=(num_latents,))
-    z = Reshape((1, 1, -1))(z)
+    input_ = Input(shape=(num_latents,))
+    z = Reshape((1, 1, -1))(input_)
     for idx in range(num_internal_deconvs):
         conv_layer = Conv2DTranspose(
             filters[idx], kernel_size=filter_sizes[idx],
@@ -171,5 +172,5 @@ def make_decoder_7_deconvs(
             z = bn_layer(z)
     y = Conv2DTranspose(
         num_channels, 4, strides=2, padding='same', activation='sigmoid')(z)
-    decoder = Model(inputs=z, outputs=y, name='decoder')
+    decoder = Model(inputs=input_, outputs=y, name='decoder')
     return decoder

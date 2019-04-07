@@ -258,7 +258,7 @@ def _make_autoencoder_models(encoder, decoder):
 def _make_loss_and_metrics(loss_dict, tensor_dict):
     # Convert loss functions to loss tensors
     loss_tensor_dict = {
-        loss_fn(**tensor_dict):coefficient
+        loss_fn(**tensor_dict): coefficient
         for loss_fn, coefficient
         in loss_dict.items()}
 

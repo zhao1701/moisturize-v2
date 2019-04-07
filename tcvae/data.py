@@ -77,7 +77,7 @@ class ImageDataGenerator(Sequence):
         imgs = np.array(imgs)
 
         # Return in form (x, y)
-        imgs = (imgs, None)
+        imgs = (imgs, imgs)
         return imgs
 
     def __len__(self):
