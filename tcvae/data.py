@@ -45,6 +45,7 @@ class ImageDataGenerator(Sequence):
         self.square_crop_length = square_crop_length
         if self.shuffle:
             self.filenames = np.random.permutation(self.filenames).tolist()
+        self.iteration_index = 0
 
     def __getitem__(self, index):
         """
@@ -81,7 +82,30 @@ class ImageDataGenerator(Sequence):
         return imgs
 
     def __len__(self):
-        return self.num_samples // self.batch_size
+        return int(np.ceil(self.num_samples / self.batch_size))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.iteration_index < len(self):
+            batch, _  = self[self.iteration_index]
+            self.iteration_index += 1
+            return batch
+        else:
+            raise StopIteration    
+
+    def reset_iterator(self):
+        self.iteration_index = 0
+
+    def load_data(self):
+        self.reset_iterator()
+        full_dataset = list()
+        for batch, _ in self:
+            full_dataset.append(batch)
+        full_dataset = np.vstack(full_dataset)
+        self.reset_iterator()
+        return full_dataset
 
     def on_epoch_end(self):
         if self.shuffle:
