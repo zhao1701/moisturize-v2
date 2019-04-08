@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import warnings
 
 import pytest
 from keras.preprocessing.image import ImageDataGenerator
@@ -10,7 +11,9 @@ from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
 
 
+warnings.filterwarnings('ignore')
 DATA_DIR = 'data'
+SAVE_DIR = 'test-model'
 
 
 @pytest.fixture()
@@ -34,3 +37,15 @@ def model():
 def test_constructor(model):
     model
     assert(model.num_latents == 32)
+
+
+def test_compile(model):
+    model.compile('adam')
+
+
+def test_save(model):
+    model.save(SAVE_DIR, overwrite=True) 
+
+
+def test_load():
+    model = TCVAE.load(SAVE_DIR)

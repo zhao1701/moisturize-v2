@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 from keras.models import Model, load_model
 
+from tcvae.layers import Variational
 from tcvae.utils import (
     unpack_tensors, check_compatibility, check_path, make_directory)
 from tcvae.inference import tile_multi_image_traversal
@@ -118,7 +119,8 @@ class TCVAE:
 
         encoder_file, decoder_file, loss_file = _process_stems(
             save_dir, encoder_stem, decoder_stem, losses_stem)
-        encoder = load_model(encoder_file)
+        custom_objects = dict(Variational=Variational)
+        encoder = load_model(encoder_file, custom_objects=custom_objects)
         decoder = load_model(decoder_file)
         with open(loss_file, 'rb') as f:
             loss_dict = pkl.load(f)

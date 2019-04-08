@@ -38,10 +38,10 @@ def check_path(path, path_type=str):
         paths = [check_path(path, path_type=path_type) for path in paths]
         return paths
     elif path_type == str:
-        path = Path(path)
+        path = path.as_posix()
         return path
     elif path_type == Path:
-        path = path.resolve().as_posix()
+        path = Path(path)
         return path
     else:
         raise ValueError(
