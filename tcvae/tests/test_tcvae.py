@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import os
 import warnings
+from glob import glob
 
 import pytest
-from keras.preprocessing.image import ImageDataGenerator
 
 from tcvae.models import TCVAE
+from tcvae.data import ImageDataGenerator
 from tcvae.losses import kl_divergence, sum_squared_error
 from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
@@ -14,12 +16,14 @@ from tcvae.models.square_128 import (
 warnings.filterwarnings('ignore')
 DATA_DIR = 'data'
 SAVE_DIR = 'test-model'
+NUM_IMAGES = len(glob(os.path.join(DATA_DIR, '*')))
+NUM_LATENTS = 32
+IMG_HEIGHT, IMG_WIDTH, NUM_CHANNELS = 128, 128, 3
 
 
 @pytest.fixture()
 def datagen():
-    img_datagen = ImageDataGenerator()
-    datagen = img_datagen.flow_from_directory(DATA_DIR)
+    datagen = ImageDataGenerator(DATA_DIR)
     return datagen
 
 
@@ -49,3 +53,20 @@ def test_save(model):
 
 def test_load():
     model = TCVAE.load(SAVE_DIR)
+
+
+def test_fit_generator(model, datagen):
+    model.compile('adam')
+    model.fit_generator(datagen, epochs=2)
+
+
+def test_encode_generator(model, datagen):
+    z_mu, z_sigma = model.encode_generator(datagen)
+    assert(z_mu.shape == z_sigma.shape)
+    assert(z_mu.shape == (NUM_IMAGES, NUM_LATENTS))
+
+
+def test_reconstruct_generator(model, datagen):
+    y = model.reconstruct_generator(datagen)
+    assert(y.shape == (NUM_IMAGES, IMG_HEIGHT, IMG_WIDTH, NUM_CHANNELS))
+

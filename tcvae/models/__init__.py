@@ -128,6 +128,14 @@ class TCVAE:
         return model
 
 
+    def fit(self, *args, **kwargs):
+        history = self.model_train.fit(*args, **kwargs)
+        return history 
+
+    def fit_generator(self, *args, **kwargs):
+        history = self.model_train.fit_generator(*args, **kwargs)
+        return history
+
     def encode(self, x, batch_size=32):
         """
         Transform images into their latent distributions.
@@ -150,6 +158,11 @@ class TCVAE:
         z_sigma = np.exp(z_log_sigma)
         return z_mu, z_sigma
 
+    def encode_generator(self, generator):
+        _, z_mu, z_log_sigma = self.encoder.predict_generator(generator)
+        z_sigma = np.exp(z_log_sigma)
+        return z_mu, z_sigma
+
     def reconstruct(self, x, batch_size=32):
         """
         Transform images into their reconstructions.
@@ -167,6 +180,10 @@ class TCVAE:
             An array or reconstructed images.
         """
         y = self.model_predict.predict(x, batch_size=batch_size)
+        return y
+
+    def reconstruct_generator(self, generator):
+        y = self.model_predict.predict_generator(generator)
         return y
 
     def decode(self, z, batch_size=32):
