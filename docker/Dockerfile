@@ -33,7 +33,7 @@ RUN pip install jupyter_contrib_nbextensions && \
 RUN pip install gitpython pillow tqdm
 
 # Zsh
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -y \
     zsh fonts-powerline
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
@@ -46,7 +46,6 @@ COPY resources/custom.js /root/.jupyter/custom/custom.js
 COPY resources/vim_binding.js /usr/local/share/jupyter/nbextensions/vim_binding/
 COPY resources/.zshrc /root/
 COPY resources/snippets.json /usr/local/share/jupyter/nbextensions/snippets
-RUN pip install -e /project
 
 WORKDIR /project/
 CMD jupyter notebook

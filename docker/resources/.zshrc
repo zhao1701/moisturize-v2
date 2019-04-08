@@ -31,5 +31,8 @@ function mkcdir {
   cd $1
 }
 
+# Install TCVAE
+pip install -e /project/tcvae
+
 # Shortcuts
 alias jpn='jupyter notebook'
