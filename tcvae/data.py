@@ -101,7 +101,7 @@ class ImageDataGenerator(Sequence):
     def load_data(self):
         self.reset_iterator()
         full_dataset = list()
-        for batch, _ in self:
+        for batch in self:
             full_dataset.append(batch)
         full_dataset = np.vstack(full_dataset)
         self.reset_iterator()

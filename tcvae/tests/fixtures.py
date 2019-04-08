@@ -2,7 +2,7 @@ import pytest
 
 from tcvae.models import TCVAE
 from tcvae.data import ImageDataGenerator
-from tcvae.tests.constants import DATA_DIR
+from tcvae.tests.constants import DATA_DIR, BATCH_SIZE
 from tcvae.losses import kl_divergence, sum_squared_error
 from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
@@ -10,7 +10,7 @@ from tcvae.models.square_128 import (
 
 @pytest.fixture()
 def datagen():
-    datagen = ImageDataGenerator(DATA_DIR)
+    datagen = ImageDataGenerator(DATA_DIR, batch_size=BATCH_SIZE)
     return datagen
 
 
