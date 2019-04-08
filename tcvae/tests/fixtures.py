@@ -23,3 +23,11 @@ def model():
         kl_divergence: 1.0}
     model = TCVAE(encoder, decoder, loss_dict)
     return model
+
+
+@pytest.fixture()
+def data():
+    datagen = ImageDataGenerator(DATA_DIR, batch_size=BATCH_SIZE)
+    data = datagen.load_data()
+    return data
+

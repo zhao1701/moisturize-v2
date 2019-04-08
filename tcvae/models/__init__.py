@@ -15,6 +15,7 @@ from tcvae.layers import Variational
 from tcvae.utils import (
     unpack_tensors, check_compatibility, check_path, make_directory)
 from tcvae.inference import tile_multi_image_traversal
+from tcvae.data import ImageDataGenerator
 
 
 class TCVAE:
@@ -208,7 +209,7 @@ class TCVAE:
     def make_traversal(
             self, x, latent_index, traversal_range=(-4, 4),
             traversal_resolution=25, batch_size=32, output_format='tiled',
-            num_rows=None):
+            num_rows=4):
         """
         A traversal of a specific component of a latent encoding involves
         interpolating that component across a range of values and generating
@@ -234,7 +235,7 @@ class TCVAE:
                 num_rows * img_height, num_cols * img_width, num_channels).
             * images_first : The output shape is (num_samples,
                 traversal_resolution, img_height, img_width, num_channels).
-            * traversal_first :  The output shape is (traversal_resolution,
+            * traversals_first :  The output shape is (traversal_resolution,
                 num_samples, img_height, img_width, num_channels).
         num_rows : int or None
             The number of rows of images when multiple input images are tiled
@@ -248,6 +249,8 @@ class TCVAE:
             determined by the `output_format` parameter.
         """
         traversal_start, traversal_end = traversal_range
+        if isinstance(x, ImageDataGenerator):
+            x = x.load_data()
         z_mu, _ = self.encode(x, batch_size=batch_size)
         traversal_sequence = np.linspace(
             traversal_start, traversal_end, traversal_resolution)
@@ -318,11 +321,13 @@ class TCVAE:
             denoting the index of the latent component being traversed and
             values containing the corresponding traversal along that component.
         """
+        if isinstance(x, ImageDataGenerator):
+            x = x.load_data()
 
         # Perform thresholding so traversals are only performed on latent
         # components whose latent distribution has standard deviation less than
         # `std_threshold`
-        z_mu, z_sigma = self.encoder(x, batch_size=batch_size)
+        _, z_mu, z_sigma = self.encoder.predict(x, batch_size=batch_size)
         z_sigma = z_sigma.mean(axis=0)
         latent_indices = np.argwhere(z_sigma <= std_threshold).squeeze()
 
@@ -330,13 +335,11 @@ class TCVAE:
         traversal_dict = dict.fromkeys(latent_indices)
         for latent_index in latent_indices:
             traversal_dict[latent_index] = self.make_traversal(
-                latent_index=latent_index, traversal_range=traversal_range,
+                x, latent_index=latent_index, traversal_range=traversal_range,
                 traversal_resolution=traversal_resolution,
                 batch_size=batch_size, output_format=output_format,
                 num_rows=num_rows)
         return traversal_dict
-
-    # TODO: compile, train, save
 
 
 def _process_stems(
