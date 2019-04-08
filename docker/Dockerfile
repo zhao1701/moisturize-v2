@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
 
 # Python libraries
 RUN pip install jupyter pandas scikit-learn matplotlib seaborn && \
-    pip install tensorflow keras pytest
+    pip install keras pytest
 
 # Notebook extensions
 RUN pip install jupyter_contrib_nbextensions && \
@@ -46,6 +46,7 @@ COPY resources/custom.js /root/.jupyter/custom/custom.js
 COPY resources/vim_binding.js /usr/local/share/jupyter/nbextensions/vim_binding/
 COPY resources/.zshrc /root/
 COPY resources/snippets.json /usr/local/share/jupyter/nbextensions/snippets
+RUN pip install -e /project
 
 WORKDIR /project/
 CMD jupyter notebook
