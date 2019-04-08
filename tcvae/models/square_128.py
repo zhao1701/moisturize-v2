@@ -6,15 +6,11 @@ images.
 """
 
 
-import os
-import sys
-
 import numpy as np
 from keras.models import Model
 from keras.layers import (
     Conv2D, Conv2DTranspose, BatchNormalization, Reshape, Input)
 
-sys.path.append(os.path.dirname(__file__))
 from tcvae.layers import Variational
 
 

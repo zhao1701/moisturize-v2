@@ -5,15 +5,12 @@ This module contains utilities for constructing, saving, and loading models.
 """
 
 
-import os
-import sys
 import pickle as pkl
 from pathlib import Path
 
 import numpy as np
 from keras.models import Model, load_model
 
-sys.path.append(os.path.dirname(__file__))
 from tcvae.utils import (
     unpack_tensors, check_compatibility, check_path, make_directory)
 from tcvae.inference import tile_multi_image_traversal
