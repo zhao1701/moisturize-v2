@@ -36,3 +36,6 @@ pip install -e /project/tcvae
 
 # Shortcuts
 alias jpn='jupyter notebook'
+
+# Add CuDNN location
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/compat

@@ -7,7 +7,7 @@ done
 read -p "Enter port number: " PORT
 
 echo ""
-echo "Starting container $CONTAINER_NAME from image $IMAGE_NAME ..."
+echo "Starting container $CONTAINER_NAME on GPU $GPU from image $IMAGE_NAME ..."
 echo ""
 
 if [ -z ${DATA_DIR} ]; then
