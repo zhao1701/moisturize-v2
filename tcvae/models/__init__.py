@@ -40,6 +40,9 @@ class TCVAE:
         corresponding values are floats indicating how the loss functions
         should be weighted.
     """
+
+    # TODO: Add attributes to class documentation
+
     def __init__(self, encoder, decoder, loss_dict):
         self.encoder = encoder
         self.decoder = decoder
@@ -306,6 +309,8 @@ class TCVAE:
         z_mu, z_sigma = self.encoder(x, batch_size=batch_size)
         z_sigma = z_sigma.mean(axis=0)
         latent_indices = np.argwhere(z_sigma <= std_threshold).squeeze()
+
+        # Traversals
         traversal_dict = dict.fromkeys(latent_indices)
         for latent_index in latent_indices:
             traversal_dict[latent_index] = self.make_traversal(
