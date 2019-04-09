@@ -2,10 +2,21 @@ import pytest
 
 from tcvae.models import TCVAE
 from tcvae.data import ImageDataGenerator
-from tcvae.tests.constants import DATA_DIR, BATCH_SIZE
+from tcvae.tests.constants import (
+    DATA_DIR, BATCH_SIZE, RECONSTRUCTION_CHECK_DIR, TRAVERSAL_CHECK_DIR)
 from tcvae.losses import kl_divergence, sum_squared_error
 from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
+from tcvae.callbacks import ReconstructionCheck
+
+@pytest.fixture()
+def reconstruction_check():
+    datagen = ImageDataGenerator(DATA_DIR)
+    test_imgs, _ = datagen[0]
+    test_imgs = test_imgs[:8]
+    reconstruction_check = ReconstructionCheck(
+        test_imgs, RECONSTRUCTION_CHECK_DIR)
+    return reconstruction_check
 
 
 @pytest.fixture()
