@@ -42,15 +42,16 @@ class TCVAE:
 
     # TODO: Add attributes to class documentation
 
-    def __init__(self, encoder, decoder, loss_dict):
+    def __init__(self, encoder, decoder, loss_dict=None):
         self.encoder = encoder
         self.decoder = decoder
         self.loss_dict = loss_dict  # For saving
 
         models = _make_autoencoder_models(self.encoder, self.decoder)
         self.model_train, self.model_predict, self.tensors = models
-        self.loss, self.metrics = _make_loss_and_metrics(
-            loss_dict, self.tensors)
+        if loss_dict is not None:
+            self.loss, self.metrics = _make_loss_and_metrics(
+                loss_dict, self.tensors)
         self.num_latents = int(self.tensors['z'].shape[-1])
 
     def compile(self, optimizer, **kwargs):
@@ -62,6 +63,9 @@ class TCVAE:
         optimizer : keras.optimizers.Optimizer or str
             See Keras documentation for more details
         """
+        assert(self.loss is not None and self.metrics is not None), (
+            "Cannot compile a model with no loss. Most likely `loss_dict` "
+            "was not specified in the constructor call.")
         self.model_train.compile(
             optimizer=optimizer, loss=self.loss, metrics=self.metrics, **kwargs)
 
@@ -278,7 +282,7 @@ class TCVAE:
 
     def make_all_traversals(
             self, x, traversal_range=(-4, 4), traversal_resolution=25,
-            batch_size=32, std_threshold=0.8, output_format='tiled',
+            batch_size=32, std_threshold=None, output_format='tiled',
             num_rows=None):
         """
         Performs traversals over all latent dimensions with high information
@@ -294,7 +298,7 @@ class TCVAE:
             The number of points in the latent component interpolation.
         batch_size : int
             The number of images in each prediction batch.
-        std_threshold : float
+        std_threshold : float or None
             A number within the range [0, 1.0]. Latent dimensions with
             distributions whose standard deviation is above this threshold
             are not included in traversal generation as high standard
@@ -303,12 +307,14 @@ class TCVAE:
         output_format : str, one of {tiled, images_first, traversal_first}
             Specifies the format in which the traversals are returned.
             * tiled : For each traversal, multiple images are tiled
-                together. The output shape is (traversal_resolution,
-                num_rows * img_height, num_cols * img_width, num_channels).
-            * images_first : The output shape is (num_samples,
+                together. The output shape is (num_latents,
+                traversal_resolution, num_rows * img_height,
+                num_cols * img_width, num_channels).
+            * images_first : The output shape is (num_latents, num_samples,
                 traversal_resolution, img_height, img_width, num_channels).
-            * traversal_first :  The output shape is (traversal_resolution,
-                num_samples, img_height, img_width, num_channels).
+            * traversals_first :  The output shape is (num_latents,
+                traversal_resolution, num_samples, img_height, img_width,
+                num_channels).
         num_rows : int or None
             The number of rows of images when multiple input images are tiled
             together. Only needs to be specified when
@@ -327,9 +333,12 @@ class TCVAE:
         # Perform thresholding so traversals are only performed on latent
         # components whose latent distribution has standard deviation less than
         # `std_threshold`
-        _, z_mu, z_sigma = self.encoder.predict(x, batch_size=batch_size)
-        z_sigma = z_sigma.mean(axis=0)
-        latent_indices = np.argwhere(z_sigma <= std_threshold).squeeze()
+        if std_threshold is not None:
+            _, z_mu, z_sigma = self.encoder.predict(x, batch_size=batch_size)
+            z_sigma = z_sigma.mean(axis=0)
+            latent_indices = np.argwhere(z_sigma <= std_threshold).squeeze()
+        else:
+            latent_indices = np.arange(self.num_latents).astype(int)
 
         # Traversals
         traversal_dict = dict.fromkeys(latent_indices)
