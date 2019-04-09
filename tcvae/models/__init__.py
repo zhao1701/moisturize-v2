@@ -14,7 +14,7 @@ from keras.models import Model, load_model
 from tcvae.layers import Variational
 from tcvae.utils import (
     unpack_tensors, check_compatibility, check_path, make_directory)
-from tcvae.inference import tile_multi_image_traversal
+from tcvae.visualization import tile_multi_image_traversal
 from tcvae.data import ImageDataGenerator
 
 

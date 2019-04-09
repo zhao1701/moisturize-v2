@@ -32,10 +32,7 @@ function mkcdir {
 }
 
 # Install TCVAE
-pip install -e /project/tcvae
+pip install -e /project/
 
 # Shortcuts
 alias jpn='jupyter notebook'
-
-# Add CuDNN location
-LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/compat
