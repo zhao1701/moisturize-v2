@@ -10,7 +10,7 @@ from pathlib import Path
 import imageio
 import numpy as np
 from keras.callbacks import Callback
-from tcvae.utils import check_path, make_directory
+from tcvae.utils import check_path, make_directory, deprocess_img
 from tcvae.models import _make_autoencoder_models, TCVAE
 
 
@@ -53,6 +53,8 @@ class ReconstructionCheck(Callback):
         reconstructions = self.model_predict.predict(self.images)
         enum_zip = enumerate(zip(self.images, reconstructions))
         for index, (original, reconstruction) in enum_zip:
+            original = deprocess_img(original)
+            reconstruction = deprocess_img(reconstruction)
             img_pair = np.hstack([original, reconstruction])
             base = '{}-{:0>2}{}'.format(self.stem, index, self.format)
             save_file = self.output_dir / base
@@ -78,7 +80,7 @@ class LatentTraversalCheck(Callback):
             assert(image.shape[0] == 1), (
                 'Traversal check can only be performed on a single image.')
         else:
-            image = [image]
+            image = np.expand_dims(image, axis=0)
         self.image = image
         self.output_dir = check_path(output_dir, Path)
         self.stem = stem
@@ -87,7 +89,7 @@ class LatentTraversalCheck(Callback):
         self.traversal_resolution = traversal_resolution
 
     def on_train_begin(self, logs=None):
-        make_directory(self.output_dir, overwrite=False)
+        make_directory(self.output_dir, overwrite=True)
         encoder = self.model.get_layer('encoder')
         decoder = self.model.get_layer('decoder')
         self.tcvae = TCVAE(encoder, decoder)
@@ -96,8 +98,9 @@ class LatentTraversalCheck(Callback):
         traversals = self.tcvae.make_all_traversals(
             self.image, self.traversal_range, self.traversal_resolution,
             std_threshold=None, output_format='traversals_first')
-        traversals = traversals.squeeze()  # Remove image sample dimension
-        for index, traversal in enumerate(traversals):
+        for index, traversal in traversals.items():
+            traversal = traversal.squeeze()  # Remove image sample dimension
+            traversal = deprocess_img(traversal)
             base = '{}-{:0>2}.gif'.format(self.stem, index)
             save_file = self.output_dir / base
             imageio.mimwrite(save_file.as_posix(), traversal)
