@@ -3,7 +3,7 @@ from glob import glob
 
 DATA_DIR = 'data'
 SAVE_DIR = 'test-model'
-RECONSTRUCTION_CHECK_DIR = 'reconstrucion-check'
+RECONSTRUCTION_CHECK_DIR = 'reconstruction-check'
 TRAVERSAL_CHECK_DIR = 'traversal-check'
 DISTRIBUTION_LOGGING_CSV_FILE = 'latent-distribution-log.csv'
 

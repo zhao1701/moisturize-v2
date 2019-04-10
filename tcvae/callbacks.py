@@ -12,6 +12,7 @@ import numpy as np
 from keras.callbacks import Callback
 from tcvae.utils import check_path, make_directory, deprocess_img
 from tcvae.models import _make_autoencoder_models, TCVAE
+from tcvae.data import ImageDataGenerator
 
 
 class ReconstructionCheck(Callback):
@@ -89,7 +90,8 @@ class LatentTraversalCheck(Callback):
         self.traversal_resolution = traversal_resolution
 
     def on_train_begin(self, logs=None):
-        make_directory(self.output_dir, overwrite=True)
+        if not self.output_dir.is_dir():
+            make_directory(self.output_dir)
         encoder = self.model.get_layer('encoder')
         decoder = self.model.get_layer('decoder')
         self.tcvae = TCVAE(encoder, decoder)
@@ -120,7 +122,7 @@ class LatentDistributionLogging(Callback):
 
     def __init__(self, csv_file, data, batch_size=512):
         super().__init__()
-        self.csv_file = check_path(csv_file, path_type=str)
+        self.csv_file = check_path(csv_file, path_type=Path)
         self.data = data
         self.batch_size = batch_size
 
@@ -130,7 +132,7 @@ class LatentDistributionLogging(Callback):
         self.batch_means = None
         self.batch_stds = None
 
-    def on_train_begin(self):
+    def on_train_begin(self, logs=None):
         self.encoder = self.model.get_layer('encoder')
         z, z_mu, z_log_sigma = self.encoder.outputs
         self.num_latents = int(z.shape[-1])
@@ -141,16 +143,16 @@ class LatentDistributionLogging(Callback):
                 'z_std_{:0>2}'.format(i) for i in range(self.num_latents)]
             csv_header = mean_header + std_header
             with open(self.csv_file.as_posix(), 'at') as f:
-                reader = csv.reader(f)
-                reader.writerow(csv_header)
+                writer = csv.writer(f)
+                writer.writerow(csv_header)
 
     def on_epoch_end(self, epoch, logs=None):
         if isinstance(self.data, np.ndarray):
             _, z_mu, z_log_sigma = self.encoder.predict(
-                self.data, self.data, batch_size=self.batch_size)
-        elif isinstance(self.data, np.ndarray):
-            _, z_mu, z_log_sigma = self.encoder.predict_generator(
                 self.data, batch_size=self.batch_size)
+        elif isinstance(self.data, ImageDataGenerator): 
+            _, z_mu, z_log_sigma = self.encoder.predict_generator(
+                self.data)
         else:
             raise ValueError(
                 'Argument for parameter `data` must be a Numpy array or '
@@ -160,6 +162,6 @@ class LatentDistributionLogging(Callback):
         z_sigma_epoch = z_sigma.mean(axis=0).tolist()
         row = z_mu_epoch + z_sigma_epoch
         with open(self.csv_file.as_posix(), 'at') as f:
-            reader = csv.reader(f)
-            reader.writerow(row)
+            writer = csv.writer(f)
+            writer.writerow(row)
 
