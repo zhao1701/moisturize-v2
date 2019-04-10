@@ -7,8 +7,9 @@ This module contains helper functions used across multiple modules.
 
 import os
 import shutil
-
 from pathlib import Path
+
+import numpy as np
 
 
 def unpack_tensors(encoder, decoder):
@@ -56,3 +57,9 @@ def make_directory(path, overwrite=False):
         else:
             shutil.rmtree(path)
     os.makedirs(path)
+
+
+def deprocess_img(img):
+    img = img * 255
+    img = img.astype(np.uint8)
+    return img
