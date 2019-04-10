@@ -6,9 +6,11 @@ This module contains helper functions used across multiple modules.
 
 
 import os
+import sys
 import shutil
 from pathlib import Path
 
+import git
 import numpy as np
 
 
@@ -63,3 +65,9 @@ def deprocess_img(img):
     img = img * 255
     img = img.astype(np.uint8)
     return img
+
+
+def import_project_root():
+    repo = git.Repo('.', search_parent_directories=True)
+    project_root = os.path.dirname(repo.git_dir)
+    sys.path.append(project_root)
