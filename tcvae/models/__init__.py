@@ -307,14 +307,15 @@ class TCVAE:
         output_format : str, one of {tiled, images_first, traversal_first}
             Specifies the format in which the traversals are returned.
             * tiled : For each traversal, multiple images are tiled
-                together. The output shape is (num_latents,
-                traversal_resolution, num_rows * img_height,
+                together. The output shape of each dictionary value is 
+                (traversal_resolution, num_rows * img_height,
                 num_cols * img_width, num_channels).
-            * images_first : The output shape is (num_latents, num_samples,
-                traversal_resolution, img_height, img_width, num_channels).
-            * traversals_first :  The output shape is (num_latents,
-                traversal_resolution, num_samples, img_height, img_width,
+            * images_first : The output shape of each dictionary value is
+                (num_samples, traversal_resolution, img_height, img_width,
                 num_channels).
+            * traversals_first :  The output shape of each dictionary value is
+                (num_latents, traversal_resolution, num_samples, img_height,
+                img_width, num_channels).
         num_rows : int or None
             The number of rows of images when multiple input images are tiled
             together. Only needs to be specified when
