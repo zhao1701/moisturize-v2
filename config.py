@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+
 PROJECT_DIR = Path(__file__).parent.resolve()
 
 APP_DIR = PROJECT_DIR / 'app'
@@ -11,4 +12,4 @@ LIBRARY_DIR = PROJECT_DIR / 'tcvae'
 NOTEBOOKS_DIR = PROJECT_DIR / 'notebooks'
 
 CELEB_A_DIR = DATA_DIR / 'celeb-a.nosync'
-NETWORKS_DIR = LIBRARY_DIR / 'networks'
+MODELS_DIR = LIBRARY_DIR / 'models'
