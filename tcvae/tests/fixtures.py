@@ -3,12 +3,20 @@ import pytest
 from tcvae.models import TCVAE
 from tcvae.data import ImageDataGenerator
 from tcvae.tests.constants import (
-    DATA_DIR, BATCH_SIZE, RECONSTRUCTION_CHECK_DIR, TRAVERSAL_CHECK_DIR)
+    DATA_DIR, BATCH_SIZE, RECONSTRUCTION_CHECK_DIR, TRAVERSAL_CHECK_DIR,
+    DISTRIBUTION_LOGGING_CSV_FILE)
 from tcvae.losses import kl_divergence, sum_squared_error
 from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
 from tcvae.callbacks import (
     ReconstructionCheck, LatentTraversalCheck, LatentDistributionLogging)
+
+@pytest.fixture()
+def latent_distribution_logging():
+    datagen = ImageDataGenerator(DATA_DIR, batch_size=BATCH_SIZE)
+    logger = LatentDistributionLogging(
+        DISTRIBUTION_LOGGING_CSV_FILE, datagen)
+    return logger
 
 
 @pytest.fixture()
