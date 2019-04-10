@@ -140,7 +140,7 @@ class LatentDistributionLogging(Callback):
             mean_header = [
                 'z_mu_{:0>2}'.format(i) for i in range(self.num_latents)]
             std_header = [
-                'z_std_{:0>2}'.format(i) for i in range(self.num_latents)]
+                'z_sigma_{:0>2}'.format(i) for i in range(self.num_latents)]
             csv_header = mean_header + std_header
             with open(self.csv_file.as_posix(), 'at') as f:
                 writer = csv.writer(f)
