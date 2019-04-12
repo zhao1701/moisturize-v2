@@ -29,13 +29,13 @@ RUN pip install jupyter_contrib_nbextensions && \
     jupyter nbextension enable vim_binding/vim_binding && \
     jupyter nbextension enable zenmode/main
 
-# Additional Python libraries
-RUN pip install gitpython pillow tqdm imageio
-
 # Zsh
 RUN apt-get install -y \
     zsh fonts-powerline
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
+
+# Additional Python libraries
+RUN pip install gitpython pillow tqdm imageio holoviews==1.12.1 bokeh pyviz
 
 # Ports
 EXPOSE 6006 8000-9000
