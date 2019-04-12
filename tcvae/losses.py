@@ -60,3 +60,16 @@ def sum_squared_error(x, y, **_):
         temp = K.sum(temp, axis=-1)
     mean_sse = K.mean(temp)
     return mean_sse
+
+
+STR_TO_LOSS_FUNC = dict(
+    sum_squared_error=sum_squared_error,
+    kl_divergence=kl_divergence,
+)
+
+
+def convert_loss_dict_keys(loss_dict):
+    loss_dict = {
+        STR_TO_LOSS_FUNC[loss_str]: coef
+        for (loss_str, coef) in loss_dict.items()}
+    return loss_dict
