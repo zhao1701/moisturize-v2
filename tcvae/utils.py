@@ -11,6 +11,8 @@ import shutil
 from pathlib import Path
 
 import git
+import json
+import yaml
 import numpy as np
 
 
@@ -71,3 +73,20 @@ def import_project_root():
     repo = git.Repo('.', search_parent_directories=True)
     project_root = os.path.dirname(repo.git_dir)
     sys.path.append(project_root)
+
+
+def read_yaml(file):
+    with open(file, 'rt') as f:
+        yaml_dict = yaml.load(f)
+    return yaml_dict
+
+
+def read_json(file):
+    with open(file, 'rt') as f:
+        json_dict = json.load(f)
+    return json_dict
+
+
+def write_json(file, dictionary):
+    with open(file, 'wt') as f:
+        json.dump(dictionary, f)
