@@ -32,7 +32,8 @@ class ReconstructionCheck(Callback):
     """
 
     def __init__(
-            self, images, output_dir, stem='reconstruction', fmt='jpg'):
+            self, images, output_dir, stem='reconstruction', fmt='jpg',
+            batch_size=32):
         super().__init__()
         self.images = images
         self.output_dir = check_path(output_dir, Path)
@@ -41,6 +42,7 @@ class ReconstructionCheck(Callback):
             fmt = '.' + fmt
         self.format = fmt
         self.model_predict = None
+        self.batch_size = batch_size
 
     def on_train_begin(self, logs=None):
         make_directory(self.output_dir, overwrite=True)
@@ -51,7 +53,8 @@ class ReconstructionCheck(Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         # Make reconstructions and stitch with original image
-        reconstructions = self.model_predict.predict(self.images)
+        reconstructions = self.model_predict.predict(
+            self.images, batch_size=self.batch_size)
         enum_zip = enumerate(zip(self.images, reconstructions))
         for index, (original, reconstruction) in enum_zip:
             original = deprocess_img(original)
