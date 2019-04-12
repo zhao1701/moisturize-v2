@@ -68,17 +68,19 @@ class ImageDataGenerator(Sequence):
         idx_start = index * self.batch_size
         idx_end = (index + 1) * self.batch_size
         batch_files = self.filenames[idx_start:idx_end]
+        imgs = self.load_processed_images(batch_files)
 
-        # Load and process image batch
-        imgs = [read_img(file) for file in batch_files]
+        # Return in form (x, y)
+        imgs = (imgs, imgs)
+        return imgs
+
+    def load_processed_images(self, files):
+        imgs = [read_img(file) for file in files]
         if self.square_crop_length:
             imgs = [
                 crop_square(img, side_length=self.square_crop_length)
                 for img in imgs]
         imgs = np.array(imgs)
-
-        # Return in form (x, y)
-        imgs = (imgs, imgs)
         return imgs
 
     def __len__(self):
@@ -106,6 +108,11 @@ class ImageDataGenerator(Sequence):
         full_dataset = np.vstack(full_dataset)
         self.reset_iterator()
         return full_dataset
+
+    def load_n_images(self, n=1):
+        files = np.random.choice(self.filenames, size=n)
+        imgs = self.load_processed_images(files)
+        return imgs
 
     def on_epoch_end(self):
         if self.shuffle:
