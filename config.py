@@ -13,3 +13,4 @@ NOTEBOOKS_DIR = PROJECT_DIR / 'notebooks'
 
 CELEB_A_DIR = DATA_DIR / 'celeb-a.nosync'
 MODELS_DIR = LIBRARY_DIR / 'models'
+YAML_DIR = EXPERIMENTS_DIR / 'yaml'
