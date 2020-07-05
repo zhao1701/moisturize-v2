@@ -1,5 +1,7 @@
+import os
 import argparse as ap
 
+from keras import backend as K
 from keras.optimizers import Adam
 from keras.callbacks import (
     TerminateOnNaN, EarlyStopping, ReduceLROnPlateau, CSVLogger)
@@ -9,7 +11,8 @@ from tcvae.models.square_128 import (
     make_encoder_7_convs, make_decoder_7_deconvs)
 from tcvae.losses import convert_loss_dict_keys
 from tcvae.data import ImageDataGenerator
-from tcvae.utils import import_project_root, read_yaml, write_json
+from tcvae.utils import (
+    import_project_root, read_yaml, write_json, make_directory)
 from tcvae.callbacks import (
     ReconstructionCheck, LatentTraversalCheck, LatentDistributionLogging)
 from tcvae.visualization import plot_loss_history, plot_dist_history
@@ -21,17 +24,19 @@ from config import EXPERIMENTS_DIR, YAML_DIR, CELEB_A_DIR
 def parse_args():
     parser = ap.ArgumentParser()
     parser.add_argument(
-        'experiment_name', required=True, type=str,
+        'experiment_name', type=str,
         help=(
             'The base name of the directory where all experiment resources '
             'will be saved.'))
     parser.add_argument(
-        'yaml_config_base', required=True, type=str,
+        'yaml_config_base', type=str,
         help=(
             'The base name of the yaml config file containing hyperparameters '
             'for the training run.'))
     parser.add_argument(
-        '-e', '--num_epochs', type=int, default=200,
+        'gpu', type=str, help='The number of the GPU to be used.')
+    parser.add_argument(
+        '-e', '--num_epochs', type=int, default=1000,
         help='The maximum number of epochs allowed for the model training run.')
     parser.add_argument(
         '-b', '--batch_size', type=int, default=256,
@@ -42,6 +47,9 @@ def parse_args():
     parser.add_argument(
         '-R', '--num_recon_check_images', type=int, default=8,
         help='Number of images to reconstruct at end of each training epoch.')
+    parser.add_argument(
+        '-o', '--overwrite', action='store_true',
+        help='Whether to overwrite experiment directory if it already exists.')
     args = parser.parse_args()
     return vars(args)
 
@@ -75,13 +83,17 @@ def main():
     config_file = constants['yaml_dir'] / args['yaml_config_base']
     yaml_dict = read_yaml(config_file)
     args = {**constants, **yaml_dict, **args}
+    
+    os.environ['CUDA_VISIBLE_DEVICES'] = args['gpu']
 
     # Build paths
     experiment_dir = args['experiments_dir'] / args['experiment_name']
+    make_directory(experiment_dir, overwrite=args['overwrite'])
 
     log_file = experiment_dir / args['json_log_base']
     model_dir = experiment_dir / args['model_stem']
     training_dir = experiment_dir / args['training_stem']
+    make_directory(training_dir)
 
     recon_check_dir = training_dir / args['recon_check_stem']
     traversal_check_dir = training_dir / args['traversal_check_stem']
@@ -110,7 +122,11 @@ def main():
         decoder = make_decoder_7_deconvs(
             **args.get('decoder_kwargs', {}))
         loss_dict = convert_loss_dict_keys(args['loss_dict'])
-        model = TCVAE(encoder, decoder, loss_dict)
+        model = TCVAE(
+            encoder, decoder, loss_dict,
+            batch_size=datagen.batch_size,
+            dataset_size=datagen.batch_size * len(datagen))
+
     optimizer = Adam(lr=args['learning_rate'])
     model.compile(optimizer)
 
@@ -122,10 +138,10 @@ def main():
         traversal_check_img, traversal_check_dir,
         **args.get('traversal_check_kwargs', {}))
     dist_logger = LatentDistributionLogging(
-        latent_dist_history_log_file, dist_log_imgs,
+        latent_dist_history_log_file, dist_log_imgs, verbose=True,
         **args.get('latent_dist_logging_kwargs', {}))
     nan_terminator = TerminateOnNaN()
-    csv_logger = CSVLogger(loss_history_log_file, append=True)
+    csv_logger = CSVLogger(loss_history_log_file.as_posix(), append=True)
     lr_reducer = ReduceLROnPlateau(
         verbose=1, **args.get('reduce_lr_kwargs', {}))
     early_stopper = EarlyStopping(
