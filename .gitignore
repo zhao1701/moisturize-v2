@@ -1,5 +1,22 @@
+# Python
+bin
+dist
+eggs
+*.egg-info
+lib
+lib64
+*.pyc
+*.pyo
 __pycache__
 .DS_STORE
+
+# Jupyter
 .ipynb_checkpoints
+
+# PyCharm
 .idea
+
+# Repository
+old
 data/celeb-a.nosync/
+experiments
