@@ -10,14 +10,17 @@ lib64
 __pycache__
 .DS_STORE
 
+
 # Jupyter
 .ipynb_checkpoints
+
 
 # PyCharm
 .idea
 
+
 # Repository
 old
 app
-data/celeb-a.nosync/
+data
 experiments
