@@ -11,6 +11,8 @@ import numpy as np
 from keras.utils import Sequence
 from keras.preprocessing.image import load_img, img_to_array
 
+from .utils import check_path
+
 
 class ImageDataGenerator(Sequence):
     """
@@ -26,7 +28,7 @@ class ImageDataGenerator(Sequence):
         The number of images in each batch of data.
     shuffle : bool
         If true, shuffles the images following each training epoch.
-    filetype : str
+    file_type : str
         The extension of the image data. Ex: `jpg` or `png`
     square_crop_length : int
         The width and height of the cropped image.
@@ -34,18 +36,28 @@ class ImageDataGenerator(Sequence):
 
     def __init__(
             self, data_dir, batch_size=32, shuffle=True,
-            filetype='jpg', square_crop_length=128):
+            file_type='jpg', square_crop_length=128):
 
-        if isinstance(data_dir, str):
-            data_dir = Path(data_dir)
+        self.data_dir = check_path(data_dir, Path)
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.filenames = list(data_dir.glob('*.{}'.format(filetype)))
-        self.num_samples = len(self.filenames)
+        self.file_names = list(self.data_dir.glob('*.{}'.format(file_type)))
         self.square_crop_length = square_crop_length
         if self.shuffle:
-            self.filenames = np.random.permutation(self.filenames).tolist()
+            self.file_names = np.random.permutation(self.file_names).tolist()
         self.iteration_index = 0
+
+    @property
+    def n_samples(self):
+        return len(self.file_names)
+
+    def __repr__(self):
+        lines = [
+            'Image Data Generator',
+            f'Data path: {self.data_dir}',
+            f'Number of files: {self.n_samples}']
+        lines.insert(1, '-' * len(lines[0]))
+        return '\n'.join(lines)
 
     def __getitem__(self, index):
         """
@@ -74,7 +86,7 @@ class ImageDataGenerator(Sequence):
         # Decide which batch of images to load
         idx_start = index * self.batch_size
         idx_end = (index + 1) * self.batch_size
-        batch_files = self.filenames[idx_start:idx_end]
+        batch_files = self.file_names[idx_start:idx_end]
         imgs = self.load_processed_images(batch_files)
 
         # Return in form (x, y)
@@ -91,14 +103,14 @@ class ImageDataGenerator(Sequence):
         return imgs
 
     def __len__(self):
-        return int(np.ceil(self.num_samples / self.batch_size))
+        return int(np.ceil(self.n_samples / self.batch_size))
 
     def __iter__(self):
         return self
 
     def __next__(self):
         if self.iteration_index < len(self):
-            batch, _  = self[self.iteration_index]
+            batch, _ = self[self.iteration_index]
             self.iteration_index += 1
             return batch
         else:
@@ -118,15 +130,15 @@ class ImageDataGenerator(Sequence):
 
     def load_n_images(self, n=1, random=True):
         if random:
-            files = np.random.choice(self.filenames, size=n)
+            files = np.random.choice(self.file_names, size=n)
         else:
-            files = sorted(self.filenames)[:n]
+            files = sorted(self.file_names)[:n]
         imgs = self.load_processed_images(files)
         return imgs
 
     def on_epoch_end(self):
         if self.shuffle:
-            self.filenames = np.random.permutation(self.filenames).tolist()
+            self.file_names = np.random.permutation(self.file_names).tolist()
 
 
 def read_img(file):
