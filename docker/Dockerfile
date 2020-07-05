@@ -6,8 +6,9 @@ RUN apt-get update && apt-get install -y \
     vim git wget curl
 
 # Python libraries
-RUN pip install jupyter pandas scikit-learn matplotlib seaborn && \
-    pip install keras pytest
+RUN pip install --upgrade pip
+RUN pip install Pillow jupyter pandas scikit-learn matplotlib seaborn \
+    keras pytest
 
 # Notebook extensions
 RUN pip install jupyter_contrib_nbextensions && \
@@ -36,9 +37,11 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
 
 # Additional Python libraries
 RUN pip install gitpython pillow tqdm imageio holoviews==1.12.1 bokeh pyviz
+RUN pip install requests scikit-image
+RUN pip install tensorflowjs
 
 # Ports
-EXPOSE 6006 8000-9000
+EXPOSE 6006 8888
 
 COPY resources/jupyter_notebook_config.py /root/.jupyter/
 COPY resources/.vimrc /root/
@@ -47,7 +50,7 @@ COPY resources/vim_binding.js /usr/local/share/jupyter/nbextensions/vim_binding/
 COPY resources/.zshrc /root/
 COPY resources/snippets.json /usr/local/share/jupyter/nbextensions/snippets
 
-ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/compat
+# ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/compat
 
 WORKDIR /project/
 CMD jupyter notebook

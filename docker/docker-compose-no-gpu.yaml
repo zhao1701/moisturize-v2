@@ -1,0 +1,18 @@
+version: '2.3'
+services:
+  notebook-service:
+    user: root
+    container_name: tcvae
+    image: registry.dsa.apps.ge.com/tcvae:latest
+    ports:
+      - "7778:8888"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/project/
+    environment:
+      - http_proxy=http://pitc-zscaler-global-zen.proxy.corporate.ge.com/
+      - HTTP_PROXY=http://pitc-zscaler-global-zen.proxy.corporate.ge.com/
+      - https_proxy=https://pitc-zscaler-global-zen.proxy.corporate.ge.com/
+      - HTTPS_PROXY=https://pitc-zscaler-global-zen.proxy.corporate.ge.com/

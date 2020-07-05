@@ -18,5 +18,6 @@ __pycache__
 
 # Repository
 old
+app
 data/celeb-a.nosync/
 experiments
