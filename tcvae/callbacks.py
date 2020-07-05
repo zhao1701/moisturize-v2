@@ -102,7 +102,7 @@ class LatentTraversalCheck(Callback):
     def on_epoch_end(self, epoch, logs=None):
         traversals = self.tcvae.make_all_traversals(
             self.image, self.traversal_range, self.traversal_resolution,
-            std_threshold=None, output_format='traversals_first')
+            std_threshold=None, output_format='traversals_first', verbose=False)
         for index, traversal in traversals.items():
             traversal = traversal.squeeze()  # Remove image sample dimension
             traversal = deprocess_img(traversal)
@@ -123,7 +123,7 @@ class LatentDistributionLogging(Callback):
         each training epoch.
     """
 
-    def __init__(self, csv_file, data, batch_size=512):
+    def __init__(self, csv_file, data, batch_size=512, verbose=False):
         super().__init__()
         self.csv_file = check_path(csv_file, path_type=Path)
         self.data = data
@@ -134,6 +134,7 @@ class LatentDistributionLogging(Callback):
         self.csv_header = None
         self.batch_means = None
         self.batch_stds = None
+        self.verbose = verbose
 
     def on_train_begin(self, logs=None):
         self.encoder = self.model.get_layer('encoder')
@@ -163,8 +164,48 @@ class LatentDistributionLogging(Callback):
         z_sigma = np.exp(z_log_sigma)
         z_mu_epoch = z_mu.mean(axis=0).tolist()
         z_sigma_epoch = z_sigma.mean(axis=0).tolist()
+        if self.verbose is True:
+            print('Latent sigmas epoch:')
+            print(z_sigma.mean(axis=0))
         row = z_mu_epoch + z_sigma_epoch
         with open(self.csv_file.as_posix(), 'at') as f:
             writer = csv.writer(f)
             writer.writerow(row)
+            
 
+class DebugPrinting(Callback):
+
+    def __init__(self, data, batch_size=256, verbose=False):
+        super().__init__()
+        self.data = data
+        self.batch_size = batch_size
+
+        self.encoder = None
+        self.num_latents = None
+        self.verbose = verbose
+
+    def on_train_begin(self, logs=None):
+        self.encoder = self.model.get_layer('encoder')
+        z, z_mu, z_log_sigma = self.encoder.outputs
+        self.num_latents = int(z.shape[-1])
+        if not self.csv_file.is_file():
+            mean_header = [
+                'z_mu_{:0>2}'.format(i) for i in range(self.num_latents)]
+            std_header = [
+                'z_sigma_{:0>2}'.format(i) for i in range(self.num_latents)]
+            csv_header = mean_header + std_header
+            with open(self.csv_file.as_posix(), 'at') as f:
+                writer = csv.writer(f)
+                writer.writerow(csv_header)
+            
+    def on_batch_end(self, batch, logs={}):
+        if self.verbose is True:
+            _, z_mu, z_log_sigma = self.encoder.predict(self.data[batch][0])
+            z_sigma = np.exp(z_log_sigma)
+            z_mu_epoch = z_mu.mean(axis=0).tolist()
+            z_sigma_epoch = z_sigma.mean(axis=0).tolist()
+
+            print('Latent log sigmas batch:')
+            print(z_log_sigma.mean(axis=0))
+            print('Latent sigmas batch:')
+            print(z_sigma.mean(axis=0))

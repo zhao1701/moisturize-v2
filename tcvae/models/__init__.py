@@ -10,12 +10,18 @@ from pathlib import Path
 
 import numpy as np
 from keras.models import Model, load_model
+from keras.initializers import glorot_normal
+from keras.utils.generic_utils import get_custom_objects
 
 from tcvae.layers import Variational
 from tcvae.utils import (
-    unpack_tensors, check_compatibility, check_path, make_directory)
+    unpack_tensors, check_compatibility, check_path, make_directory,
+    read_json, write_json)
 from tcvae.visualization import tile_multi_image_traversal
 from tcvae.data import ImageDataGenerator
+from tcvae.losses import (
+    _check_loss_fn, _log_importance_weight_matrix, _calc_logqz_condx,
+    _calc_logqz, _calc_logqz_prod_marginals, _calc_logpz)
 
 
 class TCVAE:
@@ -38,17 +44,26 @@ class TCVAE:
         A dictionary where the keys consist of loss functions and
         corresponding values are floats indicating how the loss functions
         should be weighted.
+    batch_size : int
+    dataset_size : int
     """
 
     # TODO: Add attributes to class documentation
 
-    def __init__(self, encoder, decoder, loss_dict=None):
+    def __init__(
+        self, encoder, decoder, loss_dict=None, batch_size=None,
+        dataset_size=None):
         self.encoder = encoder
         self.decoder = decoder
         self.loss_dict = loss_dict  # For saving
+        self.batch_size = batch_size
+        self.dataset_size = dataset_size
 
         models = _make_autoencoder_models(self.encoder, self.decoder)
         self.model_train, self.model_predict, self.tensors = models
+        if isinstance(batch_size, int) and isinstance(dataset_size, int):
+            self.tensors['logiw_matrix'] = _log_importance_weight_matrix(
+                self.batch_size, self.dataset_size, as_tensor=True)
         if loss_dict is not None:
             self.loss, self.metrics = _make_loss_and_metrics(
                 loss_dict, self.tensors)
@@ -71,7 +86,7 @@ class TCVAE:
 
     def save(
             self, save_dir, encoder_stem='encoder', decoder_stem='decoder',
-            losses_stem='losses', overwrite=False):
+            losses_stem='losses', config_stem='config', overwrite=False):
         """
         Saves model resources into a user-specified directory.
 
@@ -89,19 +104,22 @@ class TCVAE:
             Whether to overwrite an already existing directory.
         """
         make_directory(save_dir, overwrite=overwrite)
-        encoder_file, decoder_file, loss_file = _process_stems(
-            save_dir, encoder_stem, decoder_stem, losses_stem)
+        encoder_file, decoder_file, loss_file, config_file = _process_stems(
+            save_dir, encoder_stem, decoder_stem, losses_stem, config_stem)
 
         self.encoder.save(encoder_file)
         self.decoder.save(decoder_file)
         with open(loss_file, 'wb') as f:
             pkl.dump(self.loss_dict, f)
-
+        config = {
+            'batch_size': self.batch_size,
+            'dataset_size': self.dataset_size}
+        write_json(config_file, config)
 
     @classmethod
     def load(
             cls, save_dir, encoder_stem='encoder', decoder_stem='decoder',
-            losses_stem='losses'):
+            losses_stem='losses', config_stem='config'):
         """
         Loads model resources from a user-specified directory.
 
@@ -122,16 +140,17 @@ class TCVAE:
             An uncompiled TCVAE model.
         """
 
-        encoder_file, decoder_file, loss_file = _process_stems(
-            save_dir, encoder_stem, decoder_stem, losses_stem)
+        encoder_file, decoder_file, loss_file, config_file = _process_stems(
+            save_dir, encoder_stem, decoder_stem, losses_stem, config_stem)
         custom_objects = dict(Variational=Variational)
         encoder = load_model(encoder_file, custom_objects=custom_objects)
         decoder = load_model(decoder_file)
+        config = read_json(config_file)
         with open(loss_file, 'rb') as f:
             loss_dict = pkl.load(f)
-        model = cls(encoder, decoder, loss_dict)
+        model = cls(
+            encoder, decoder, loss_dict, **config)
         return model
-
 
     def fit(self, *args, **kwargs):
         history = self.model_train.fit(*args, **kwargs)
@@ -283,7 +302,7 @@ class TCVAE:
     def make_all_traversals(
             self, x, traversal_range=(-4, 4), traversal_resolution=25,
             batch_size=32, std_threshold=None, output_format='tiled',
-            num_rows=None):
+            num_rows=None, verbose=False):
         """
         Performs traversals over all latent dimensions with high information
         capacity.
@@ -335,11 +354,16 @@ class TCVAE:
         # components whose latent distribution has standard deviation less than
         # `std_threshold`
         if std_threshold is not None:
-            _, z_mu, z_sigma = self.encoder.predict(x, batch_size=batch_size)
-            z_sigma = z_sigma.mean(axis=0)
+            _, z_mu, z_log_sigma = self.encoder.predict(x, batch_size=batch_size)
+            z_sigma = np.exp(z_log_sigma).mean(axis=0)
             latent_indices = np.argwhere(z_sigma <= std_threshold).squeeze()
         else:
             latent_indices = np.arange(self.num_latents).astype(int)
+        if verbose:
+            print(
+                'Generating traversals for the following '
+                '{} latent indices:'.format(len(latent_indices)))
+            print(latent_indices)
 
         # Traversals
         traversal_dict = dict.fromkeys(latent_indices)
@@ -353,23 +377,25 @@ class TCVAE:
 
 
 def _process_stems(
-        save_dir, encoder_stem, decoder_stem, losses_stem):
+        save_dir, encoder_stem, decoder_stem, losses_stem, config_stem):
 
-    paths = [save_dir, encoder_stem, decoder_stem, losses_stem]
-    save_dir, encoder_stem, decoder_stem, losses_stem = check_path(
+    paths = [save_dir, encoder_stem, decoder_stem, losses_stem, config_stem]
+    save_dir, encoder_stem, decoder_stem, losses_stem, config_stem = check_path(
         paths, path_type=Path)
 
     encoder_base = encoder_stem.with_suffix('.h5')
     decoder_base = decoder_stem.with_suffix('.h5')
     losses_base = losses_stem.with_suffix('.dict')
-    bases = encoder_base, decoder_base, losses_base
+    config_base = config_stem.with_suffix('.json')
+    
+    bases = encoder_base, decoder_base, losses_base, config_base
     files = [save_dir / base for base in bases]
-    encoder_file, decoder_file, loss_file = check_path(files, path_type=str)
-    return encoder_file, decoder_file, loss_file
+    encoder_file, decoder_file, loss_file, config_file = check_path(
+        files, path_type=str)
+    return encoder_file, decoder_file, loss_file, config_file
 
 
 def _make_autoencoder_models(encoder, decoder):
-    check_compatibility(encoder, decoder)
     tensor_dict = unpack_tensors(encoder, decoder)
 
     # Create VAE model for training
@@ -385,22 +411,33 @@ def _make_autoencoder_models(encoder, decoder):
 
 
 def _make_loss_and_metrics(loss_dict, tensor_dict):
+
     # Convert loss functions to loss tensors
     loss_tensor_dict = {
-        loss_fn(**tensor_dict): coefficient
+        loss_fn(**tensor_dict): (coefficient, loss_fn.__name__)
         for loss_fn, coefficient
         in loss_dict.items()}
 
     # Convert loss tensors to Keras-compatible loss functions
-    loss_names = [loss_fn.__name__ for loss_fn in loss_dict.keys()]
     loss_closure_dict = {
         _convert_to_closure(loss_tensor, loss_name): coefficient
-        for loss_name, (loss_tensor, coefficient)
-        in zip(loss_names, loss_tensor_dict.items())}
+        for loss_tensor, (coefficient, loss_name)
+        in loss_tensor_dict.items()}
 
     # Total loss
     total_loss_fn = _make_total_loss_fn(loss_closure_dict)
     metrics = list(loss_closure_dict.keys())
+
+    # For debugging
+#     metrics.extend([
+#         _convert_to_closure(
+#             _calc_logqz_condx(**tensor_dict), 'logqz_condx'),
+#         _convert_to_closure(
+#             _calc_logqz(**tensor_dict), 'logqz'),
+#         _convert_to_closure(
+#             _calc_logqz_prod_marginals(**tensor_dict), 'logqz_prod_marginals'),
+#         _convert_to_closure(
+#             _calc_logpz(**tensor_dict), 'logpz')])
     return total_loss_fn, metrics
 
 
@@ -415,6 +452,7 @@ def _make_total_loss_fn(loss_dict):
     def total_loss_fn(x, y):
         loss = 0
         for loss_fn, coefficient in loss_dict.items():
+            print('{}: {}'.format(loss_fn.__name__, coefficient))
             loss += coefficient * loss_fn(x, y)
         return loss
     return total_loss_fn

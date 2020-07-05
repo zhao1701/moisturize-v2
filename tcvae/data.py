@@ -64,6 +64,13 @@ class ImageDataGenerator(Sequence):
             square_crop_length, num_channels). The second element is None and is
             necessary for proper integration with a Keras-based autoencoder.
         """
+        
+        # Batch size at last index not guaranteed to match original
+        # batch size. Because this will cause problems with TCVAE-type
+        # latent losses, we always exclude the final batch.
+        if index == len(self)-1:
+            index = 0
+        
         # Decide which batch of images to load
         idx_start = index * self.batch_size
         idx_end = (index + 1) * self.batch_size
@@ -109,8 +116,11 @@ class ImageDataGenerator(Sequence):
         self.reset_iterator()
         return full_dataset
 
-    def load_n_images(self, n=1):
-        files = np.random.choice(self.filenames, size=n)
+    def load_n_images(self, n=1, random=True):
+        if random:
+            files = np.random.choice(self.filenames, size=n)
+        else:
+            files = sorted(self.filenames)[:n]
         imgs = self.load_processed_images(files)
         return imgs
 
@@ -136,6 +146,8 @@ def read_img(file):
     img = load_img(file)
     img = img_to_array(img)
     img /= 255.  # Restrict pixels to between 0 and 1
+    
+    assert(np.all(img <= 1.0) and np.all(img >= 0.0))
     return img
 
 

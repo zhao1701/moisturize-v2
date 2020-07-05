@@ -10,13 +10,45 @@ import sys
 import shutil
 from pathlib import Path
 
-import git
+# import git
 import json
 import yaml
 import numpy as np
 
 
 def unpack_tensors(encoder, decoder):
+    """
+    Produces a dictionary of tensors from a encoder and decoder models
+    meeting certain architectural requirements.
+    
+    Parameters
+    ----------
+    encoder : keras.models.Model
+        The encoder network of an autoencoder. It must output 3 tensors
+        corresponding to:
+            1) The latent encoding of the input image sampled from
+               the latent means and latent variances.
+            2) The means that parametrize the latent distribution of the
+               input images.
+            3) The log of the standard deviations that parametrize the
+               latent distribution of the input images.
+        The above three outputs must have the same shape
+        (num_samples, num_latent_dims).
+    decoder : keras.models.Model
+        The decoder network of an autoencoder. Its output shape must be the
+        same as the encoder network's input shape, and its input shape
+        must be the same as that of each of the encoder network's output
+        shapes.
+        
+    Returns
+    -------
+    tensor_dict : dict
+        A dictionary where keys consist of strings of tensor names and
+        values consist of the actual tensors.
+    """
+    
+    check_compatibility(encoder, decoder)
+    
     x = encoder.inputs[0]
     tensor_dict = dict(
         x=x, z=encoder(x)[0], z_mu=encoder(x)[1],
@@ -30,9 +62,10 @@ def check_compatibility(encoder, decoder):
     # Check encoder and decoder are compatible
     assert(encoder.input_shape == decoder.output_shape), (
         'Encoder input shapes and decoder output shapes must be the same.')
-    assert(encoder.output_shape[0][-1] == decoder.input_shape[-1]), (
-        'The number of latent dimensions the encoder outputs is different from '
-        'what the decoder expects.')
+    for output_tensor_shape in encoder.output_shape:
+        assert(output_tensor_shape[-1] == decoder.input_shape[-1]), (
+            'The number of latent dimensions the encoder outputs is different '
+            'from what the decoder expects.')
 
 
 def check_path(path, path_type=str):
@@ -69,24 +102,41 @@ def deprocess_img(img):
     return img
 
 
-def import_project_root():
-    repo = git.Repo('.', search_parent_directories=True)
-    project_root = os.path.dirname(repo.git_dir)
-    sys.path.append(project_root)
+# def import_project_root():
+#     repo = git.Repo('.', search_parent_directories=True)
+#     project_root = os.path.dirname(repo.git_dir)
+#     sys.path.append(project_root)
 
 
 def read_yaml(file):
+    file = check_path(file, str)
     with open(file, 'rt') as f:
-        yaml_dict = yaml.load(f)
+        yaml_dict = yaml.safe_load(f)
     return yaml_dict
 
 
 def read_json(file):
+    file = check_path(file, str)
     with open(file, 'rt') as f:
         json_dict = json.load(f)
     return json_dict
 
 
 def write_json(file, dictionary):
+    file = check_path(file, str)
+    dictionary = make_json_serializable(dictionary)
     with open(file, 'wt') as f:
         json.dump(dictionary, f)
+        
+
+def make_json_serializable(value):
+    if isinstance(value, dict):
+        dictionary = {
+            key: make_json_serializable(value) for (key, value)
+            in value.items()}
+        return dictionary
+    elif isinstance(value, Path):
+        return value.as_posix()
+    else:
+        return value
+    

@@ -7,7 +7,10 @@ images.
 
 
 import numpy as np
+
+from keras import backend as K
 from keras.models import Model
+from keras.initializers import glorot_normal
 from keras.layers import (
     Conv2D, Conv2DTranspose, BatchNormalization, Reshape, Input)
 
@@ -16,7 +19,8 @@ from tcvae.layers import Variational
 
 def _check_iterable_arg(arg, expected_length):
     """
-    Checks if a numeric argument is an iterable of a predefined length.
+    Checks if an argument is an iterable of a predefined length. If not,
+    tries to convert the non-iterable argument into an iterable.
     """
     numeric_types = int, float
     iterable_types = np.ndarray, list, tuple
@@ -30,7 +34,7 @@ def _check_iterable_arg(arg, expected_length):
         raise ValueError(
             'Argument must be of type int, float, np.ndarray, list, or tuple.')
     return arg
-
+        
 
 def make_encoder_7_convs(
         filters=(32, 64, 128, 128, 256, 512), num_latents=32, num_channels=3,
@@ -87,7 +91,7 @@ def make_encoder_7_convs(
     for idx in range(num_shared_convs):
         conv_layer = Conv2D(
             filters[idx], 4, strides=strides[idx], padding=paddings[idx],
-            activation=activations[idx])
+            activation=activations[idx], kernel_initializer='glorot_normal')
         x = conv_layer(x)
         if batch_normalization is True:
             bn_layer = BatchNormalization(
@@ -96,10 +100,19 @@ def make_encoder_7_convs(
             x = bn_layer(x)
     z_mu = Conv2D(num_latents, 1)(x)
     z_mu = Reshape((num_latents,))(z_mu)
-    z_log_sigma = Conv2D(num_latents, 1)(x)
+    z_log_sigma = Conv2D(
+        num_latents, 1, kernel_initializer='glorot_normal', name='z_log_sigma_conv')(x)
     z_log_sigma = Reshape((num_latents,))(z_log_sigma)
     z = Variational()([z_mu, z_log_sigma])
     encoder = Model(inputs=input_, outputs=[z, z_mu, z_log_sigma], name='encoder')
+    
+    # Reduce magnitude of weights in 'z_log_sigma_conv' layer for
+    # numerical stability. Tried using custom initializer, but ran into
+    # de-serialization issues when loading model.
+    weights = encoder.get_layer('z_log_sigma_conv').get_weights()
+    weights = [weights_ / 10.0 for weights_ in weights]
+    encoder.get_layer('z_log_sigma_conv').set_weights(weights)
+    
     return encoder
 
 
@@ -154,12 +167,12 @@ def make_decoder_7_deconvs(
     filter_sizes = [1] + [4] * 5
 
     input_ = Input(shape=(num_latents,))
-    z = Reshape((1, 1, -1))(input_)
+    z = Reshape((1, 1, num_latents))(input_)
     for idx in range(num_internal_deconvs):
         conv_layer = Conv2DTranspose(
             filters[idx], kernel_size=filter_sizes[idx],
             strides=strides[idx], padding=paddings[idx],
-            activation=activations[idx])
+            activation=activations[idx], kernel_initializer='glorot_normal')
         z = conv_layer(z)
         if batch_normalization is True:
             bn_layer = BatchNormalization(
