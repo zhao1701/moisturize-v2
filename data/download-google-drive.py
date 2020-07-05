@@ -1,15 +1,15 @@
-'''
+"""
 In your terminal, run the command:
 python download_gdrive.py GoogleFileID /path/for/this/file/to/download/file.type
 
 Credited to 
-https://github.com/chentinghao/download_google_drive/blob/master/download_gdrive.py
-https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive
 author: https://stackoverflow.com/users/1475331/user115202
-'''
+"""
+
 
 import requests
 from tqdm import tqdm
+
 
 def download_file_from_google_drive(id, destination):
     def get_confirm_token(response):
