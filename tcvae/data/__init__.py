@@ -4,14 +4,16 @@
 This module contains utilities for reading and handling image data.
 """
 
-
+import functools as ft
 from pathlib import Path
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 from keras.utils import Sequence
 from keras.preprocessing.image import load_img, img_to_array
 
-from .utils import check_path
+from ..utils import check_path
+from .augmentation import *
 
 
 class ImageDataGenerator(Sequence):
@@ -30,19 +32,19 @@ class ImageDataGenerator(Sequence):
         If true, shuffles the images following each training epoch.
     file_type : str
         The extension of the image data. Ex: `jpg` or `png`
-    square_crop_length : int
-        The width and height of the cropped image.
     """
 
     def __init__(
             self, data_dir, batch_size=32, shuffle=True,
-            file_type='jpg', square_crop_length=128):
+            transformers=(), file_type='jpg', n_processes=-1):
 
+        self.transformers = transformers
+        self.transformation_fn = TransformComposer(*transformers)
+        self.n_processes = get_parallelization(n_processes)
         self.data_dir = check_path(data_dir, Path)
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.file_names = list(self.data_dir.glob('*.{}'.format(file_type)))
-        self.square_crop_length = square_crop_length
         if self.shuffle:
             self.file_names = np.random.permutation(self.file_names).tolist()
         self.iteration_index = 0
@@ -55,7 +57,8 @@ class ImageDataGenerator(Sequence):
         lines = [
             'Image Data Generator',
             f'Data path: {self.data_dir}',
-            f'Number of files: {self.n_samples}']
+            f'Number of files: {self.n_samples}',
+            f'Parallelization: {self.n_processes}']
         lines.insert(1, '-' * len(lines[0]))
         return '\n'.join(lines)
 
@@ -94,11 +97,11 @@ class ImageDataGenerator(Sequence):
         return imgs
 
     def load_processed_images(self, files):
-        imgs = [read_img(file) for file in files]
-        if self.square_crop_length:
-            imgs = [
-                crop_square(img, side_length=self.square_crop_length)
-                for img in imgs]
+        transformation_fn = TransformComposer(*self.transformers)
+        with Pool(processes=self.n_processes) as p:
+            np.random.seed()  # Necessary else child processes always the same
+            imgs = p.map(read_img, files)
+            imgs = p.map(transformation_fn, imgs)
         imgs = np.array(imgs)
         return imgs
 
@@ -114,7 +117,7 @@ class ImageDataGenerator(Sequence):
             self.iteration_index += 1
             return batch
         else:
-            raise StopIteration    
+            raise StopIteration
 
     def reset_iterator(self):
         self.iteration_index = 0
@@ -155,6 +158,7 @@ def read_img(file):
     img : np.ndarray
         An array of shape (height, width, num_channels).
     """
+    file = check_path(file, str)
     img = load_img(file)
     img = img_to_array(img)
     img /= 255.  # Restrict pixels to between 0 and 1
@@ -163,7 +167,29 @@ def read_img(file):
     return img
 
 
-def crop_square(img, side_length=128):
+def get_parallelization(n_processes):
+    """
+    Calculates the number of jobs that can be run simultaneously.
+
+    Parameters
+    ----------
+    n_processes : int
+        The desired number of processes to be executed simultaneously.
+        If set to a number less than 1 or exceeding the max hardware
+        limit, function returns the number of CPUs on the machine.
+
+    Returns
+    -------
+    int
+        The number of processes to be executed in parallel.
+    """
+    assert(isinstance(n_processes, int))
+    n_processes = min(n_processes, cpu_count())  # Clip at hardware limit
+    n_processes = cpu_count() if n_processes < 1 else n_processes
+    return n_processes
+
+
+def crop_center_square(img, side_length=128):
     """
     Create a centered square cropping of an image.
 
