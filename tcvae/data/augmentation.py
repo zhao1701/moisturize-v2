@@ -18,7 +18,7 @@ class RandomRotator:
 
 class RandomSquareCropper:
 
-    def __init__(self, target_edge_length=128, zoom_range=(0.5, 1.0)):
+    def __init__(self, target_edge_length=128, zoom_range=(0.6, 1.0)):
         self.target_edge_length = target_edge_length
         self.zoom_range = zoom_range
 
@@ -126,6 +126,6 @@ class TransformComposer:
         self.functions = functions
 
     def __call__(self, img):
-        for fn in self.functions:
+        for fn in self.functions[::-1]:
             img = fn(img)
         return img
