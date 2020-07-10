@@ -6,14 +6,24 @@ autoencoders models.
 """
 
 
+import imageio
 import numpy as np
 import pandas as pd
-# import holoviews as hv
-import imageio
-# from holoviews import opts
-# hv.extension('bokeh')
+import matplotlib.pyplot as plt
 
-from tcvae.utils import check_path
+from .utils import check_path
+
+
+def plot_img(img, figsize=(4, 4)):
+    plt.figure(figsize=figsize)
+    plt.imshow(img)
+    plt.axis('off')
+
+
+def process_for_animation(img):
+    img *= 255
+    img = img.astype(np.uint8)
+    return img
 
 
 def tile_multi_image_traversal(latent_traversals, num_rows):
@@ -52,12 +62,6 @@ def tile_multi_image_traversal(latent_traversals, num_rows):
         traversal_resolution, num_rows * img_height, num_cols * img_width,
         num_channels)
     return latent_traversals
-
-
-def process_for_animation(img):
-    img *= 255
-    img = img.astype(np.uint8)
-    return img
 
 
 def animate_traversals(traversals_dict, traversal_dir):

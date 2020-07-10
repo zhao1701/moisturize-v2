@@ -10,18 +10,15 @@ from pathlib import Path
 
 import numpy as np
 from keras.models import Model, load_model
-from keras.initializers import glorot_normal
-from keras.utils.generic_utils import get_custom_objects
 
 from tcvae.layers import Variational
 from tcvae.utils import (
-    unpack_tensors, check_compatibility, check_path, make_directory,
+    unpack_tensors, check_path, make_directory,
     read_json, write_json)
 from tcvae.visualization import tile_multi_image_traversal
 from tcvae.data import ImageDataGenerator
 from tcvae.losses import (
-    _check_loss_fn, _log_importance_weight_matrix, _calc_logqz_condx,
-    _calc_logqz, _calc_logqz_prod_marginals, _calc_logpz)
+    _log_importance_weight_matrix)
 
 
 class TCVAE:
@@ -417,7 +414,6 @@ def _make_loss_and_metrics(loss_dict, tensor_dict):
         loss_fn(**tensor_dict): (coefficient, loss_fn.__name__)
         for loss_fn, coefficient
         in loss_dict.items()}
-
     # Convert loss tensors to Keras-compatible loss functions
     loss_closure_dict = {
         _convert_to_closure(loss_tensor, loss_name): coefficient
