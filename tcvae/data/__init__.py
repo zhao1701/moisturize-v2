@@ -9,6 +9,7 @@ from pathlib import Path
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
+from tqdm import tqdm
 from tensorflow.keras.utils import Sequence
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
@@ -37,7 +38,7 @@ class ImageDataGenerator(Sequence):
     def __init__(
             self, data_dir, batch_size=32, shuffle=True,
             transformers=(), file_type='jpg', n_processes=-1):
-
+        
         self.transformers = transformers
         self.transformation_fn = TransformComposer(*transformers)
         self.n_processes = get_parallelization(n_processes)
@@ -97,11 +98,14 @@ class ImageDataGenerator(Sequence):
         return imgs
 
     def load_processed_images(self, files):
-        transformation_fn = TransformComposer(*self.transformers)
-        with Pool(processes=self.n_processes) as p:
-            np.random.seed()  # Necessary else child processes always the same
-            imgs = p.map(read_img, files)
-            imgs = p.map(transformation_fn, imgs)
+        np.random.seed()  # Necessary else child processes always the same
+        if self.n_processes == 1:
+            imgs = [read_img(file) for file in files]
+            imgs = [self.transformation_fn(img) for img in imgs]
+        else:
+            with Pool(processes=self.n_processes) as p:
+                imgs = p.map(read_img, files)
+                imgs = p.map(self.transformation_fn, imgs)
         imgs = np.array(imgs)
         return imgs
 
@@ -125,7 +129,7 @@ class ImageDataGenerator(Sequence):
     def load_data(self):
         self.reset_iterator()
         full_dataset = list()
-        for batch in self:
+        for batch in tqdm(self):
             full_dataset.append(batch)
         full_dataset = np.vstack(full_dataset)
         self.reset_iterator()

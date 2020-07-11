@@ -15,6 +15,35 @@ from tcvae.models import _make_autoencoder_models, TCVAE
 from tcvae.data import ImageDataGenerator
 
 
+class TCVAECheckpoint(Callback):
+    """
+    Parameters
+    ----------
+    output_dir : str or pathlib.Path
+    """
+
+    def __init__(
+            self, model, model_dir, monitor):
+        super().__init__()
+        self.model_ = model
+        self.model_dir = check_path(model_dir, Path)
+        self.monitor = monitor
+        self.best_value = float('inf')
+
+    def on_train_begin(self, logs=None):
+        self.model_dir.mkdir(exist_ok=True, parents=True)
+
+    def on_epoch_end(self, epoch, logs=None):
+        value = logs[self.monitor]
+        if value < self.best_value:
+            print(f'New best {self.monitor}: {value:.4f}')
+            print(f'Saving checkpoint at {self.model_dir}')
+            self.best_value = value
+            self.model_.save(self.model_dir, overwrite=True)
+        else:
+            print(f'Best {self.monitor} remains at {value:.4f}')
+            
+
 class ReconstructionCheck(Callback):
     """
     Parameters
@@ -123,11 +152,13 @@ class LatentDistributionLogging(Callback):
         each training epoch.
     """
 
-    def __init__(self, csv_file, data, batch_size=512, verbose=False):
+    def __init__(
+            self, csv_file, data, batch_size=512, verbose=False, overwrite=False):
         super().__init__()
         self.csv_file = check_path(csv_file, path_type=Path)
         self.data = data
         self.batch_size = batch_size
+        self.overwrite = overwrite
 
         self.encoder = None
         self.num_latents = None
@@ -140,15 +171,22 @@ class LatentDistributionLogging(Callback):
         self.encoder = self.model.get_layer('encoder')
         z, z_mu, z_log_sigma = self.encoder.outputs
         self.num_latents = int(z.shape[-1])
+        
+        if self.csv_file.is_file() and self.overwrite:
+            self.csv_file.unlink()
+        
         if not self.csv_file.is_file():
-            mean_header = [
+            self.write_header()
+                
+    def write_header(self):
+        mean_header = [
                 'z_mu_{:0>2}'.format(i) for i in range(self.num_latents)]
-            std_header = [
-                'z_sigma_{:0>2}'.format(i) for i in range(self.num_latents)]
-            csv_header = mean_header + std_header
-            with open(self.csv_file.as_posix(), 'at') as f:
-                writer = csv.writer(f)
-                writer.writerow(csv_header)
+        std_header = [
+            'z_sigma_{:0>2}'.format(i) for i in range(self.num_latents)]
+        csv_header = mean_header + std_header
+        with open(self.csv_file.as_posix(), 'at') as f:
+            writer = csv.writer(f)
+            writer.writerow(csv_header)
 
     def on_epoch_end(self, epoch, logs=None):
         if isinstance(self.data, np.ndarray):

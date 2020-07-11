@@ -4,9 +4,9 @@
 This module contains utilities for constructing, saving, and loading models.
 """
 
-
 import pickle as pkl
 from pathlib import Path
+from shutil import rmtree
 
 import numpy as np
 from tensorflow.keras.models import Model, load_model
@@ -100,10 +100,14 @@ class TCVAE:
         overwrite : bool
             Whether to overwrite an already existing directory.
         """
-        make_directory(save_dir, overwrite=overwrite)
+        save_dir = check_path(save_dir, Path)
+        if save_dir.exists() and overwrite:
+            rmtree(save_dir)
+            save_dir.mkdir()
+        
         encoder_file, decoder_file, loss_file, config_file = _process_stems(
             save_dir, encoder_stem, decoder_stem, losses_stem, config_stem)
-
+        
         self.encoder.save(encoder_file)
         self.decoder.save(decoder_file)
         with open(loss_file, 'wb') as f:
