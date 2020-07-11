@@ -7,7 +7,7 @@ from inspect import signature
 
 import numpy as np
 import tensorflow as tf
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 
 ### RECONSTRUCTION LOSS FUNCTIONS ###

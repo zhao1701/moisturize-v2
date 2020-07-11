@@ -8,10 +8,10 @@ images.
 
 import numpy as np
 
-from keras import backend as K
-from keras.models import Model
-from keras.initializers import glorot_normal
-from keras.layers import (
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras.initializers import glorot_normal
+from tensorflow.keras.layers import (
     Conv2D, Conv2DTranspose, BatchNormalization, Reshape, Input)
 
 from tcvae.layers import Variational

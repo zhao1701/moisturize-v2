@@ -9,7 +9,7 @@ from pathlib import Path
 
 import imageio
 import numpy as np
-from keras.callbacks import Callback
+from tensorflow.keras.callbacks import Callback
 from tcvae.utils import check_path, make_directory, deprocess_img
 from tcvae.models import _make_autoencoder_models, TCVAE
 from tcvae.data import ImageDataGenerator

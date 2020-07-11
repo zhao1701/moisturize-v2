@@ -9,8 +9,8 @@ from pathlib import Path
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
-from keras.utils import Sequence
-from keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.utils import Sequence
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 from ..utils import check_path
 from .augmentation import *

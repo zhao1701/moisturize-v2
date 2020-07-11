@@ -9,7 +9,7 @@ import pickle as pkl
 from pathlib import Path
 
 import numpy as np
-from keras.models import Model, load_model
+from tensorflow.keras.models import Model, load_model
 
 from tcvae.layers import Variational
 from tcvae.utils import (
@@ -180,7 +180,7 @@ class TCVAE:
         return z_mu, z_sigma
 
     def encode_generator(self, generator):
-        _, z_mu, z_log_sigma = self.encoder.predict_generator(generator)
+        _, z_mu, z_log_sigma = self.encoder.predict(generator)
         z_sigma = np.exp(z_log_sigma)
         return z_mu, z_sigma
 
