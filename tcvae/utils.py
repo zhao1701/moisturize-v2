@@ -115,6 +115,12 @@ def read_yaml(file):
     return yaml_dict
 
 
+def write_yaml(file, dictionary):
+    file = check_path(file, str)
+    with open(file, 'wt') as f:
+        yaml_dict = yaml.safe_dump(dictionary, f)
+
+
 def read_json(file):
     file = check_path(file, str)
     with open(file, 'rt') as f:
