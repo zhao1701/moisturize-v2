@@ -41,7 +41,7 @@ class TCVAECheckpoint(Callback):
             self.best_value = value
             self.model_.save(self.model_dir, overwrite=True)
         else:
-            print(f'Best {self.monitor} remains at {value:.4f}')
+            print(f'Best {self.monitor} remains at {self.best_value:.4f}')
             
 
 class ReconstructionCheck(Callback):
