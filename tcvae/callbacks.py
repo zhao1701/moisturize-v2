@@ -36,7 +36,7 @@ class TCVAECheckpoint(Callback):
     def on_epoch_end(self, epoch, logs=None):
         value = logs[self.monitor]
         if value < self.best_value:
-            print(f'New best {self.monitor}: {value:.4f}')
+            print(f'{self.monitor} improved from {self.best_value} to {value}')
             print(f'Saving checkpoint at {self.model_dir}')
             self.best_value = value
             self.model_.save(self.model_dir, overwrite=True)
